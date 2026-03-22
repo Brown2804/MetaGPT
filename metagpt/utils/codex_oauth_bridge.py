@@ -8,12 +8,20 @@ import asyncio
 import base64
 import json
 import os
+import stat
+import tempfile
 import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from aiohttp import web
+
+from metagpt.auth.openai_codex import (
+    derive_account_id,
+    is_expiring_soon,
+    refresh_openai_codex_tokens,
+)
 
 
 def extract_text_content(content: Any) -> str:
@@ -289,9 +297,40 @@ class CodexAppServerClient:
         return result["turn"]["id"]
 
 
+def _atomic_write_json(path: str | Path, data: dict[str, Any]) -> None:
+    target = Path(path).expanduser()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp_name = tempfile.mkstemp(prefix="openclaw-auth-", suffix=".json", dir=str(target.parent))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            json.dump(data, handle, ensure_ascii=False, indent=2)
+            handle.write("\n")
+        os.chmod(tmp_name, stat.S_IRUSR | stat.S_IWUSR)
+        os.replace(tmp_name, target)
+    finally:
+        if os.path.exists(tmp_name):
+            os.remove(tmp_name)
+
+
+
 def load_openclaw_profile(settings: BridgeSettings) -> tuple[str, str, str | None]:
-    data = json.loads(Path(settings.openclaw_auth_path).read_text(encoding="utf-8"))
+    auth_path = Path(settings.openclaw_auth_path).expanduser()
+    data = json.loads(auth_path.read_text(encoding="utf-8"))
     profile = data["profiles"][settings.openclaw_profile]
+
+    refresh_token = profile.get("refresh")
+    expires_at = profile.get("expires")
+    if refresh_token and is_expiring_soon(expires_at, within_seconds=300):
+        refreshed = refresh_openai_codex_tokens(refresh_token)
+        profile["access"] = refreshed["access_token"]
+        profile["refresh"] = refreshed["refresh_token"]
+        profile["expires"] = refreshed["expires_at_ms"]
+        profile["accountId"] = profile.get("accountId") or refreshed.get("account_id") or derive_account_id(refreshed["access_token"])
+        if refreshed.get("id_token"):
+            profile["idToken"] = refreshed["id_token"]
+        data["profiles"][settings.openclaw_profile] = profile
+        _atomic_write_json(auth_path, data)
+
     access_token = profile["access"]
     account_id = profile.get("accountId") or derive_chatgpt_account_id(access_token)
     plan_type = derive_chatgpt_plan_type(access_token)

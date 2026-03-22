@@ -39,5 +39,5 @@ def test_import_openclaw_codex_auth(tmp_path: Path):
     assert profile.access_token == "access-123"
     assert profile.refresh_token == "refresh-123"
     assert profile.account_id == "acct-1"
-    assert profile.expires_at == "1774366484411"
+    assert profile.expires_at == "2026-03-24T15:34:44.411000Z"
     assert profile.meta["source"] == "openclaw-auth-profiles"

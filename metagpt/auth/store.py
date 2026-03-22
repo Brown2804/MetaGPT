@@ -7,10 +7,17 @@ import json
 import os
 import stat
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
 from metagpt.auth.models import AuthFile, AuthProfile
+from metagpt.auth.openai_codex import (
+    derive_account_id,
+    format_expiry_timestamp,
+    is_expiring_soon,
+    refresh_openai_codex_tokens,
+)
 from metagpt.const import CONFIG_ROOT
 
 
@@ -72,6 +79,35 @@ class AuthStore:
             return profiles
         return {profile_id: profile for profile_id, profile in profiles.items() if profile.provider == provider}
 
+    def ensure_valid_profile(
+        self,
+        profile_id: str,
+        within_seconds: int = 300,
+        force: bool = False,
+    ) -> Optional[AuthProfile]:
+        auth_file = self.load()
+        profile = auth_file.profiles.get(profile_id)
+        if profile is None:
+            return None
+        if profile.provider != "openai-codex" or not profile.refresh_token:
+            return profile
+        if not force and not is_expiring_soon(profile.expires_at, within_seconds=within_seconds):
+            return profile
+
+        refreshed = refresh_openai_codex_tokens(profile.refresh_token)
+        profile.access_token = refreshed["access_token"]
+        profile.refresh_token = refreshed["refresh_token"]
+        profile.expires_at = refreshed["expires_at"]
+        profile.id_token = refreshed.get("id_token") or profile.id_token
+        profile.account_id = refreshed.get("account_id") or profile.account_id or derive_account_id(profile.access_token)
+        profile.meta = {
+            **(profile.meta or {}),
+            "last_refresh": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        }
+        auth_file.profiles[profile_id] = profile
+        self.save(auth_file)
+        return profile
+
     def import_codex_cli_auth(
         self,
         profile_label: str = "default",
@@ -104,13 +140,15 @@ class AuthStore:
         if not overwrite and self.get_profile(profile_id):
             raise ValueError(f"Profile already exists: {profile_id}")
 
+        normalized_expires_at = expires_at if isinstance(expires_at, str) and "T" in expires_at else format_expiry_timestamp(expires_at) or (str(expires_at) if expires_at else None)
+
         profile = AuthProfile(
             provider="openai-codex",
             label=profile_label,
             access_token=access_token,
             refresh_token=refresh_token,
-            account_id=account_id,
-            expires_at=expires_at,
+            account_id=account_id or derive_account_id(access_token),
+            expires_at=normalized_expires_at,
             id_token=id_token,
             meta={"source": "codex-cli-cache", "path": str(codex_auth_path)},
         )
@@ -156,8 +194,8 @@ class AuthStore:
             label=profile_label,
             access_token=access_token,
             refresh_token=refresh_token,
-            account_id=account_id,
-            expires_at=str(expires_at) if expires_at is not None else None,
+            account_id=account_id or derive_account_id(access_token),
+            expires_at=format_expiry_timestamp(expires_at) or (str(expires_at) if expires_at is not None else None),
             id_token=source.get("idToken") or source.get("id_token"),
             meta={
                 "source": "openclaw-auth-profiles",

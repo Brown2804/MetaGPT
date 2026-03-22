@@ -19,7 +19,8 @@ class ResolvedCredentials:
 def resolve_openai_credentials(config: LLMConfig) -> ResolvedCredentials:
     if config.auth_mode == "oauth_profile":
         profile_id = config.auth_profile or "openai-codex:default"
-        profile = AuthStore.default().get_profile(profile_id)
+        store = AuthStore.default()
+        profile = store.ensure_valid_profile(profile_id)
         if profile is None:
             raise ValueError(
                 f"OAuth profile '{profile_id}' not found. Run `metagpt auth import-codex` or configure a valid auth_profile."
