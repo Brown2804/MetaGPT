@@ -53,7 +53,8 @@ MetaGPT Community - The position of Chief Evangelist rotates on a monthly basis.
     1.  The official openai base_url address is `https://api.openai.com/v1`
     2.  If the official openai base_url address is inaccessible in your environment (this can be verified with curl), it's recommended to configure using base_url to other "reverse-proxy" provider such as openai-forward. For instance, `openai base_url: "``https://api.openai-forward.com/v1``"`
     3.  If the official openai base_url address is inaccessible in your environment (again, verifiable via curl), another option is to configure the llm.proxy in the `config2.yaml`. This way, you can access the official openai base_url via a local proxy. If you don't need to access via a proxy, please do not enable this configuration; if accessing through a proxy is required, modify it to the correct proxy address.
-    4.  Note: OpenAI's default API design ends with a v1. An example of the correct configuration is: `base_url: "https://api.openai.com/v1"
+    4.  Experimental: if you are using a local OpenAI-compatible bridge backed by a Codex OAuth session, import the local session first with `metagpt auth import-codex`, then configure `api_type: "openai_codex"`, `auth_mode: "oauth_profile"`, `auth_profile: "openai-codex:default"`, and set `base_url` to your local bridge endpoint.
+    5.  Note: OpenAI's default API design ends with a v1. An example of the correct configuration is: `base_url: "https://api.openai.com/v1"
 8.  Get reply: "Absolutely! How can I assist you today?"
     1.  Did you use Chi or a similar service? These services are prone to errors, and it seems that the error rate is higher when consuming 3.5k-4k tokens in GPT-4
 9.  What does Max token mean?

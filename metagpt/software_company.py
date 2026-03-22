@@ -134,6 +134,15 @@ llm:
   model: "gpt-4-turbo"  # or gpt-3.5-turbo
   base_url: "https://api.openai.com/v1"  # or forward url / other llm url
   api_key: "YOUR_API_KEY"
+
+# Experimental OAuth profile example for OpenAI-compatible Codex bridges:
+# llm:
+#   api_type: "openai_codex"
+#   auth_mode: "oauth_profile"
+#   auth_profile: "openai-codex:default"
+#   base_url: "http://127.0.0.1:8787/v1"
+#   api_key: ""
+#   model: "gpt-5.4"
 """
 
 

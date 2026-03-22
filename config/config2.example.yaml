@@ -4,6 +4,13 @@ llm:
   api_key: "YOUR_API_KEY"
   model: "gpt-4-turbo"  # or gpt-3.5-turbo
   proxy: "YOUR_PROXY"  # for LLM API requests
+  # Experimental OAuth profile mode for OpenAI-compatible Codex bridges:
+  # api_type: "openai_codex"
+  # auth_mode: "oauth_profile"
+  # auth_profile: "openai-codex:default"
+  # api_key: ""
+  # base_url: "http://127.0.0.1:8787/v1"
+  # model: "gpt-5.4"
   # timeout: 600 # Optional. If set to 0, default value is 300.
   # Details: https://azure.microsoft.com/en-us/pricing/details/cognitive-services/openai-service/
   pricing_plan: "" # Optional. Use for Azure LLM when its model name is not the same as OpenAI's
@@ -119,6 +126,13 @@ models:
 #    # timeout: 600 # Optional. If set to 0, default value is 300.
 #    # Details: https://azure.microsoft.com/en-us/pricing/details/cognitive-services/openai-service/
 #    pricing_plan: "" # Optional. Use for Azure LLM when its model name is not the same as OpenAI's
+#  "codex-work":
+#    api_type: "openai_codex"
+#    auth_mode: "oauth_profile"
+#    auth_profile: "openai-codex:default"
+#    api_key: ""
+#    base_url: "http://127.0.0.1:8787/v1"
+#    model: "gpt-5.4"
 #  "YOUR_MODEL_NAME_2 or YOUR_API_TYPE_2": # api_type: "openai"  # or azure / ollama / groq etc.
 #    api_type: "openai"  # or azure / ollama / groq etc.
 #    base_url: "YOUR_BASE_URL"
