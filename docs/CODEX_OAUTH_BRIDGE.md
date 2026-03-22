@@ -85,6 +85,14 @@ After that, the service is usable with normal MetaGPT commands:
 ./scripts/metagpt-codex-service.sh smoke
 ```
 
+### Full live validation
+
+This runs the full user-facing service matrix end-to-end:
+
+```bash
+./scripts/metagpt-local.sh python scripts/test-codex-service-live.py
+```
+
 ## Direct bridge usage
 
 If you want to run only the raw bridge:
