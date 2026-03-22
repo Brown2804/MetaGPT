@@ -116,3 +116,54 @@ class AuthStore:
         )
         self.upsert_profile(profile_id, profile)
         return profile_id
+
+    def import_openclaw_codex_auth(
+        self,
+        profile_label: str = "default",
+        openclaw_auth_path: Optional[Path] = None,
+        source_profile_id: str = "openai-codex:default",
+        overwrite: bool = True,
+    ) -> str:
+        openclaw_auth_path = Path(
+            openclaw_auth_path or Path.home() / ".openclaw" / "agents" / "main" / "agent" / "auth-profiles.json"
+        ).expanduser()
+        if not openclaw_auth_path.exists():
+            raise FileNotFoundError(f"OpenClaw auth file not found: {openclaw_auth_path}")
+
+        with open(openclaw_auth_path, "r", encoding="utf-8") as f:
+            raw = json.load(f)
+
+        profiles = raw.get("profiles") or {}
+        source = profiles.get(source_profile_id)
+        if not source:
+            raise ValueError(f"OpenClaw auth profile not found: {source_profile_id}")
+
+        access_token = source.get("access")
+        refresh_token = source.get("refresh")
+        account_id = source.get("accountId")
+        expires_at = source.get("expires")
+        provider = source.get("provider") or "openai-codex"
+
+        if not access_token:
+            raise ValueError(f"OpenClaw auth profile does not contain access token: {source_profile_id}")
+
+        profile_id = f"openai-codex:{profile_label}"
+        if not overwrite and self.get_profile(profile_id):
+            raise ValueError(f"Profile already exists: {profile_id}")
+
+        profile = AuthProfile(
+            provider=provider,
+            label=profile_label,
+            access_token=access_token,
+            refresh_token=refresh_token,
+            account_id=account_id,
+            expires_at=str(expires_at) if expires_at is not None else None,
+            id_token=source.get("idToken") or source.get("id_token"),
+            meta={
+                "source": "openclaw-auth-profiles",
+                "path": str(openclaw_auth_path),
+                "source_profile_id": source_profile_id,
+            },
+        )
+        self.upsert_profile(profile_id, profile)
+        return profile_id

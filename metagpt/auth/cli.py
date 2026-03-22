@@ -45,6 +45,33 @@ def import_codex(
     typer.echo(f"Auth store: {store.path}")
 
 
+@app.command("import-openclaw-codex")
+def import_openclaw_codex(
+    profile: str = typer.Argument("default", metavar="[profile]", help="Target profile label."),
+    auth_file: Path = typer.Argument(
+        Path.home() / ".openclaw" / "agents" / "main" / "agent" / "auth-profiles.json",
+        metavar="[auth-file]",
+        help="Path to OpenClaw auth-profiles.json.",
+    ),
+    source_profile_id: str = typer.Argument(
+        "openai-codex:default",
+        metavar="[source-profile-id]",
+        help="Source profile id inside OpenClaw auth store.",
+    ),
+    no_overwrite: bool = typer.Option(False, "--no-overwrite", help="Fail instead of replacing an existing target profile."),
+):
+    """Import Codex OAuth credentials from an existing OpenClaw auth store."""
+    store = AuthStore.default()
+    profile_id = store.import_openclaw_codex_auth(
+        profile_label=profile,
+        openclaw_auth_path=auth_file,
+        source_profile_id=source_profile_id,
+        overwrite=not no_overwrite,
+    )
+    typer.echo(f"Imported OpenClaw Codex auth into profile: {profile_id}")
+    typer.echo(f"Auth store: {store.path}")
+
+
 @app.command("login")
 def login(
     provider: str = typer.Argument(..., metavar="provider", help="Provider to log in, currently supports: codex"),
