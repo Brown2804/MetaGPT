@@ -9,6 +9,7 @@
 from openai import AsyncAzureOpenAI
 from openai._base_client import AsyncHttpxClientWrapper
 
+from metagpt.auth.resolver import resolve_openai_credentials
 from metagpt.configs.llm_config import LLMType
 from metagpt.provider.llm_provider_registry import register_provider
 from metagpt.provider.openai_api import OpenAILLM
@@ -28,10 +29,11 @@ class AzureOpenAILLM(OpenAILLM):
         self.pricing_plan = self.config.pricing_plan or self.model
 
     def _make_client_kwargs(self) -> dict:
+        credentials = resolve_openai_credentials(self.config)
         kwargs = dict(
-            api_key=self.config.api_key,
+            api_key=credentials.api_key,
             api_version=self.config.api_version,
-            azure_endpoint=self.config.base_url,
+            azure_endpoint=credentials.base_url,
         )
 
         # to use proxy, openai v1 needs http_client

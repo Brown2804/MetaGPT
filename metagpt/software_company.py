@@ -6,9 +6,11 @@ from pathlib import Path
 
 import typer
 
+from metagpt.auth.cli import app as auth_app
 from metagpt.const import CONFIG_ROOT
 
 app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
+app.add_typer(auth_app, name="auth")
 
 
 def generate_repo(

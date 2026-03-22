@@ -7,9 +7,9 @@
 """
 
 from enum import Enum
-from typing import Optional
+from typing import Literal, Optional
 
-from pydantic import field_validator
+from pydantic import ValidationInfo, field_validator
 
 from metagpt.configs.compress_msg_config import CompressType
 from metagpt.const import CONFIG_ROOT, LLM_API_TIMEOUT, METAGPT_ROOT
@@ -18,6 +18,7 @@ from metagpt.utils.yaml_model import YamlModel
 
 class LLMType(Enum):
     OPENAI = "openai"
+    OPENAI_CODEX = "openai_codex"
     ANTHROPIC = "anthropic"
     CLAUDE = "claude"  # alias name of anthropic
     SPARK = "spark"
@@ -56,6 +57,8 @@ class LLMConfig(YamlModel):
     Optional Fields in pydantic: https://docs.pydantic.dev/latest/migration/#required-optional-and-nullable-fields
     """
 
+    auth_mode: Literal["api_key", "oauth_profile"] = "api_key"
+    auth_profile: Optional[str] = None
     api_key: str = "sk-"
     api_type: LLMType = LLMType.OPENAI
     base_url: str = "https://api.openai.com/v1"
@@ -115,7 +118,10 @@ class LLMConfig(YamlModel):
 
     @field_validator("api_key")
     @classmethod
-    def check_llm_key(cls, v):
+    def check_llm_key(cls, v, info: ValidationInfo):
+        if info.data.get("auth_mode") == "oauth_profile":
+            return v or ""
+
         if v in ["", None, "YOUR_API_KEY"]:
             repo_config_path = METAGPT_ROOT / "config/config2.yaml"
             root_config_path = CONFIG_ROOT / "config2.yaml"

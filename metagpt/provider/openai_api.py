@@ -24,6 +24,7 @@ from tenacity import (
     wait_random_exponential,
 )
 
+from metagpt.auth.resolver import resolve_openai_credentials
 from metagpt.configs.llm_config import LLMConfig, LLMType
 from metagpt.const import USE_CONFIG_TIMEOUT
 from metagpt.logs import log_llm_stream, logger
@@ -43,6 +44,7 @@ from metagpt.utils.token_counter import (
 @register_provider(
     [
         LLMType.OPENAI,
+        LLMType.OPENAI_CODEX,
         LLMType.FIREWORKS,
         LLMType.OPEN_LLM,
         LLMType.MOONSHOT,
@@ -72,7 +74,8 @@ class OpenAILLM(BaseLLM):
         self.aclient = AsyncOpenAI(**kwargs)
 
     def _make_client_kwargs(self) -> dict:
-        kwargs = {"api_key": self.config.api_key, "base_url": self.config.base_url}
+        credentials = resolve_openai_credentials(self.config)
+        kwargs = {"api_key": credentials.api_key, "base_url": credentials.base_url}
 
         # to use proxy, openai v1 needs http_client
         if proxy_params := self._get_proxy_params():
