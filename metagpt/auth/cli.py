@@ -13,7 +13,7 @@ app = typer.Typer(help="Manage MetaGPT auth profiles.", add_completion=False, pr
 
 
 @app.command("status")
-def status(provider: str = typer.Option(default="", help="Optional provider filter, e.g. openai-codex")):
+def status(provider: str = typer.Option("", "--provider", help="Optional provider filter, e.g. openai-codex")):
     """Show locally stored auth profiles."""
     store = AuthStore.default()
     profiles = store.list_profiles(provider=provider or None)
@@ -30,22 +30,26 @@ def status(provider: str = typer.Option(default="", help="Optional provider filt
 
 @app.command("import-codex")
 def import_codex(
-    profile: str = typer.Option(default="default", help="Target profile label."),
-    auth_file: Path = typer.Option(default=Path.home() / ".codex" / "auth.json", help="Path to Codex CLI auth.json."),
-    overwrite: bool = typer.Option(default=True, help="Overwrite if the target profile already exists."),
+    profile: str = typer.Argument("default", metavar="[profile]", help="Target profile label."),
+    auth_file: Path = typer.Argument(Path.home() / ".codex" / "auth.json", metavar="[auth-file]", help="Path to Codex CLI auth.json."),
+    no_overwrite: bool = typer.Option(False, "--no-overwrite", help="Fail instead of replacing an existing target profile."),
 ):
     """Import an existing Codex CLI auth cache into MetaGPT auth storage."""
     store = AuthStore.default()
-    profile_id = store.import_codex_cli_auth(profile_label=profile, codex_auth_path=auth_file, overwrite=overwrite)
+    profile_id = store.import_codex_cli_auth(
+        profile_label=profile,
+        codex_auth_path=auth_file,
+        overwrite=not no_overwrite,
+    )
     typer.echo(f"Imported Codex auth into profile: {profile_id}")
     typer.echo(f"Auth store: {store.path}")
 
 
 @app.command("login")
 def login(
-    provider: str = typer.Argument(..., help="Provider to log in, currently supports: codex"),
-    profile: str = typer.Option(default="default", help="Target profile label."),
-    auth_file: Path = typer.Option(default=Path.home() / ".codex" / "auth.json", help="Existing Codex CLI auth cache to import."),
+    provider: str = typer.Argument(..., metavar="provider", help="Provider to log in, currently supports: codex"),
+    profile: str = typer.Argument("default", metavar="[profile]", help="Target profile label."),
+    auth_file: Path = typer.Argument(Path.home() / ".codex" / "auth.json", metavar="[auth-file]", help="Existing Codex CLI auth cache to import."),
 ):
     """Bootstrap login by reusing an existing Codex CLI OAuth cache."""
     normalized = provider.strip().lower()
@@ -59,7 +63,7 @@ def login(
 
 
 @app.command("logout")
-def logout(profile_id: str = typer.Argument(..., help="Profile id, e.g. openai-codex:default")):
+def logout(profile_id: str = typer.Argument(..., metavar="profile-id", help="Profile id, e.g. openai-codex:default")):
     """Delete a stored auth profile."""
     store = AuthStore.default()
     deleted = store.delete_profile(profile_id)

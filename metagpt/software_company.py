@@ -13,6 +13,15 @@ app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 app.add_typer(auth_app, name="auth")
 
 
+def _parse_bool_option(value: str, option_name: str) -> bool:
+    normalized = str(value).strip().lower()
+    if normalized in {"1", "true", "yes", "y", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "n", "off"}:
+        return False
+    raise typer.BadParameter(f"{option_name} must be one of: true/false, yes/no, 1/0")
+
+
 def generate_repo(
     idea,
     investment=3.0,
@@ -79,30 +88,38 @@ def generate_repo(
 @app.command("", help="Start a new project.")
 def startup(
     idea: str = typer.Argument(None, help="Your innovative idea, such as 'Create a 2048 game.'"),
-    investment: float = typer.Option(default=3.0, help="Dollar amount to invest in the AI company."),
-    n_round: int = typer.Option(default=5, help="Number of rounds for the simulation."),
-    code_review: bool = typer.Option(default=True, help="Whether to use code review."),
-    run_tests: bool = typer.Option(default=False, help="Whether to enable QA for adding & running tests."),
-    implement: bool = typer.Option(default=True, help="Enable or disable code implementation."),
-    project_name: str = typer.Option(default="", help="Unique project name, such as 'game_2048'."),
-    inc: bool = typer.Option(default=False, help="Incremental mode. Use it to coop with existing repo."),
+    investment: float = typer.Option(3.0, "--investment", help="Dollar amount to invest in the AI company."),
+    n_round: int = typer.Option(5, "--n-round", help="Number of rounds for the simulation."),
+    code_review: str = typer.Option("true", "--code-review", help="Whether to use code review. true/false."),
+    run_tests: str = typer.Option("false", "--run-tests", help="Whether to enable QA for adding & running tests. true/false."),
+    implement: str = typer.Option("true", "--implement", help="Enable or disable code implementation. true/false."),
+    project_name: str = typer.Option("", "--project-name", help="Unique project name, such as 'game_2048'."),
+    inc: str = typer.Option("false", "--inc", help="Incremental mode. true/false."),
     project_path: str = typer.Option(
-        default="",
+        "",
+        "--project-path",
         help="Specify the directory path of the old version project to fulfill the incremental requirements.",
     ),
     reqa_file: str = typer.Option(
-        default="", help="Specify the source file name for rewriting the quality assurance code."
+        "", "--reqa-file", help="Specify the source file name for rewriting the quality assurance code."
     ),
     max_auto_summarize_code: int = typer.Option(
-        default=0,
+        0,
+        "--max-auto-summarize-code",
         help="The maximum number of times the 'SummarizeCode' action is automatically invoked, with -1 indicating "
         "unlimited. This parameter is used for debugging the workflow.",
     ),
-    recover_path: str = typer.Option(default=None, help="recover the project from existing serialized storage"),
-    init_config: bool = typer.Option(default=False, help="Initialize the configuration file for MetaGPT."),
+    recover_path: str = typer.Option(None, "--recover-path", help="recover the project from existing serialized storage"),
+    init_config: str = typer.Option("false", "--init-config", help="Initialize the configuration file for MetaGPT. true/false."),
 ):
     """Run a startup. Be a boss."""
-    if init_config:
+    init_config_bool = _parse_bool_option(init_config, "init_config")
+    code_review_bool = _parse_bool_option(code_review, "code_review")
+    run_tests_bool = _parse_bool_option(run_tests, "run_tests")
+    implement_bool = _parse_bool_option(implement, "implement")
+    inc_bool = _parse_bool_option(inc, "inc")
+
+    if init_config_bool:
         copy_config_to()
         return
 
@@ -114,11 +131,11 @@ def startup(
         idea,
         investment,
         n_round,
-        code_review,
-        run_tests,
-        implement,
+        code_review_bool,
+        run_tests_bool,
+        implement_bool,
         project_name,
-        inc,
+        inc_bool,
         project_path,
         reqa_file,
         max_auto_summarize_code,
