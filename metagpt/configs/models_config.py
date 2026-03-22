@@ -107,6 +107,7 @@ class ModelsConfig(YamlModel):
         if model:
             return model
         for m in self.models.values():
-            if m.api_type == name_or_type:
+            api_type = m.api_type.value if hasattr(m.api_type, "value") else m.api_type
+            if api_type == name_or_type:
                 return m
         return None
